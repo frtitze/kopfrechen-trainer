@@ -1,7 +1,9 @@
 import type { Metadata } from 'next';
 import './globals.css';
 
-const siteUrl = 'https://matheklar-kopfrechen.monique-titze.chatgpt.site';
+const siteUrl =
+  process.env.NEXT_PUBLIC_SITE_URL ??
+  'https://matheklar-kopfrechen.monique-titze.chatgpt.site';
 const title = 'MatheKlar | Kopfrechenteil Klasse 10';
 const description =
   'Interaktiver 15-Minuten-Trainer für den Kopfrechenteil der Mathematik-Abschlussprüfung in Klasse 10.';
