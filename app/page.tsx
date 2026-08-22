@@ -51,23 +51,43 @@ const QUESTION_BANK: Question[] = [
   { id: 'calc-decimal', category: 'Grundrechnen', prompt: '2,5 : 10 =', solution: '0,25', check: numeric(0.25) },
   { id: 'calc-distributive', category: 'Grundrechnen', prompt: '0,6 · 14 + 0,4 · 14 =', solution: '14', check: numeric(14) },
   { id: 'calc-fraction', category: 'Grundrechnen', prompt: '84 : ½ =', solution: '168', check: numeric(168) },
+  { id: 'calc-mixed', category: 'Grundrechnen', prompt: '15 − 3 · 4 =', solution: '3', check: numeric(3) },
+  { id: 'calc-part', category: 'Grundrechnen', prompt: 'Berechne ¾ von 84.', solution: '63', check: numeric(63) },
+  { id: 'calc-large', category: 'Grundrechnen', prompt: '125 · 8 =', solution: '1 000', check: numeric(1000) },
   { id: 'unit-length', category: 'Einheiten', prompt: '0,45 m = ___ cm', note: 'Gib nur die Zahl ein.', solution: '45 cm', check: numeric(45) },
   { id: 'unit-time', category: 'Einheiten', prompt: '0,75 h = ___ min', note: 'Gib nur die Zahl ein.', solution: '45 min', check: numeric(45) },
   { id: 'unit-length-large', category: 'Einheiten', prompt: '320 cm = ___ m', note: 'Gib nur die Zahl ein.', solution: '3,2 m', check: numeric(3.2) },
+  { id: 'unit-mass', category: 'Einheiten', prompt: '2,4 kg = ___ g', note: 'Gib nur die Zahl ein.', solution: '2 400 g', check: numeric(2400) },
+  { id: 'unit-volume', category: 'Einheiten', prompt: '1,5 l = ___ ml', note: 'Gib nur die Zahl ein.', solution: '1 500 ml', check: numeric(1500) },
   { id: 'percent-increase', category: 'Prozentrechnung', prompt: 'Ein Gehalt von 2 800 € wird um 5 % erhöht. Neues Gehalt:', note: 'Gib den Betrag in Euro ein.', solution: '2 940 €', check: numeric(2940) },
   { id: 'percent-original', category: 'Prozentrechnung', prompt: '72 € sind 80 % des ursprünglichen Preises. Der ursprüngliche Preis beträgt:', solution: '90 €', check: numeric(90) },
   { id: 'percent-change', category: 'Prozentrechnung', prompt: 'Ein Betrag steigt von 3 000 € auf 3 090 €. Er steigt um:', note: 'Gib die Prozentzahl ein.', solution: '3 %', check: numeric(3) },
+  { id: 'percent-part', category: 'Prozentrechnung', prompt: '15 % von 200 sind:', solution: '30', check: numeric(30) },
+  { id: 'percent-base', category: 'Prozentrechnung', prompt: '48 sind 60 % von welcher Zahl?', solution: '80', check: numeric(80) },
+  { id: 'percent-reduction', category: 'Prozentrechnung', prompt: 'Ein Preis von 500 € wird um 12 % gesenkt. Neuer Preis:', solution: '440 €', check: numeric(440) },
   { id: 'term-value', category: 'Terme', prompt: 'Berechne 2a(a − b) für a = 3 und b = 6.', solution: '−18', check: numeric(-18) },
   { id: 'binomial', category: 'Terme', prompt: 'Löse die Klammer auf: (x − 4)²', solution: 'x² − 8x + 16', check: oneOf('x^2-8x+16', '16-8x+x^2') },
   { id: 'rearrange', category: 'Terme', prompt: 'Stelle u = 2(a + b) nach a um.', solution: 'a = u/2 − b', check: oneOf('a=u/2-b', 'u/2-b', 'a=0.5u-b', '0.5u-b') },
+  { id: 'term-nested', category: 'Terme', prompt: 'Berechne a − (2b − a) für a = 1 und b = 10.', solution: '−18', check: numeric(-18) },
+  { id: 'difference-squares', category: 'Terme', prompt: 'Löse die Klammern auf: (3 − x)(3 + x)', solution: '9 − x²', check: oneOf('9-x^2', '-x^2+9') },
+  { id: 'simplify-term', category: 'Terme', prompt: 'Fasse zusammen: 4x + 3x − 2', solution: '7x − 2', check: oneOf('7x-2', '-2+7x') },
   { id: 'square-area', category: 'Geometrie', prompt: 'Ein Quadrat hat den Flächeninhalt 121 cm². Seine Seitenlänge beträgt:', solution: '11 cm', check: numeric(11) },
   { id: 'equal-area', category: 'Geometrie', prompt: 'Ein Rechteck ist 4 cm × 9 cm groß. Die Seitenlänge eines flächengleichen Quadrats ist:', solution: '6 cm', check: numeric(6) },
   { id: 'triangle-angles', category: 'Geometrie', prompt: 'Ein rechtwinkliges Dreieck hat einen Winkel von 35°. Nenne die beiden anderen Winkel.', note: 'Trenne die Werte mit einem Semikolon.', solution: '55°; 90°', check: twoNumbers(55, 90) },
-  { id: 'vertex', category: 'Funktionen', prompt: 'Gib den Scheitelpunkt der Funktion f(x) = (x + 5)² + 1 an.', note: 'Schreibweise zum Beispiel: S(2|3)', solution: 'S(−5|1)', check: oneOf('s(-5|1)', '(-5|1)', '-5;1', '-5|1') },
+  { id: 'circle-radius', category: 'Geometrie', prompt: 'Ein Kreis hat einen Durchmesser von 12 cm. Sein Radius beträgt:', solution: '6 cm', check: numeric(6) },
+  { id: 'rectangle-perimeter', category: 'Geometrie', prompt: 'Ein Rechteck ist 7 cm lang und 4 cm breit. Sein Umfang beträgt:', solution: '22 cm', check: numeric(22) },
+  { id: 'triangle-third-angle', category: 'Geometrie', prompt: 'Zwei Winkel eines Dreiecks sind 46° und 64° groß. Der dritte Winkel beträgt:', solution: '70°', check: numeric(70) },
+  { id: 'vertex', category: 'Funktionen', prompt: 'Gib den Scheitelpunkt der Funktion f(x) = (x + 5)² + 1 an.', note: 'Schreibweise zum Beispiel: S(2/3)', solution: 'S(−5/1)', check: oneOf('s(-5/1)', '(-5/1)', '-5/1') },
   { id: 'zero', category: 'Funktionen', prompt: 'Die Gerade hat die Gleichung y = 2x − 6. Ihre Nullstelle ist x₀ =', solution: '3', check: numeric(3) },
+  { id: 'vertex-second', category: 'Funktionen', prompt: 'Gib den Scheitelpunkt der Funktion f(x) = (x − 3)² − 2 an.', note: 'Verwende die Schreibweise S(x/y).', solution: 'S(3/−2)', check: oneOf('s(3/-2)', '(3/-2)', '3/-2') },
+  { id: 'zero-second', category: 'Funktionen', prompt: 'Die Gerade hat die Gleichung y = −3x + 9. Ihre Nullstelle ist x₀ =', solution: '3', check: numeric(3) },
+  { id: 'function-value', category: 'Funktionen', prompt: 'Für f(x) = 2x + 1 gilt bei x = 4:', solution: 'f(4) = 9', check: oneOf('9', 'f(4)=9') },
   { id: 'probability', category: 'Wahrscheinlichkeit', prompt: 'Von 12 Pullovern sind 8 bunt gemustert. Die Wahrscheinlichkeit, einen gemusterten Pullover zu ziehen, ist:', note: 'Bruch, Dezimalzahl oder Prozentzahl sind möglich.', solution: '2/3', check: oneOf('2/3', '0.6667', '0.67', '66.67%', '66,67%') },
   { id: 'probability-zero', category: 'Wahrscheinlichkeit', prompt: 'In einer Urne liegen nur rote und gelbe Kugeln. Die Wahrscheinlichkeit, eine blaue Kugel zu ziehen, ist:', solution: '0', check: oneOf('0', '0%', '0/1') },
+  { id: 'probability-red', category: 'Wahrscheinlichkeit', prompt: 'In einer Urne liegen 9 rote und 11 gelbe Kugeln. Die Wahrscheinlichkeit für Rot ist:', note: 'Bruch, Dezimalzahl oder Prozentzahl sind möglich.', solution: '9/20 = 0,45 = 45 %', check: oneOf('9/20', '0.45', '45%') },
+  { id: 'probability-complement', category: 'Wahrscheinlichkeit', prompt: 'Die Wahrscheinlichkeit für Regen beträgt 30 %. Die Wahrscheinlichkeit, dass es nicht regnet, beträgt:', solution: '70 %', check: numeric(70) },
   { id: 'sequence', category: 'Zahlenfolgen', prompt: 'Setze die Zahlenfolge fort: 10; 20; 40; 70; ___; ___', note: 'Trenne die beiden Zahlen mit einem Semikolon.', solution: '110; 160', check: oneOf('110;160', '110|160') },
+  { id: 'sequence-differences', category: 'Zahlenfolgen', prompt: 'Setze die Zahlenfolge fort: 5; 9; 15; 23; ___; ___', note: 'Trenne die beiden Zahlen mit einem Semikolon.', solution: '33; 45', check: oneOf('33;45', '33|45') },
 ];
 
 const shuffle = <T,>(items: T[]) => {
@@ -168,8 +188,8 @@ export default function Home() {
             <p className="eyebrow">Kopfrechenteil · Abschlussprüfung</p>
             <h1>15 Minuten.<br />12 Punkte.<br /><em>Du schaffst das.</em></h1>
             <p className="hero-lead">
-              Trainiere genau die kurzen Aufgabentypen, die dir in der Prüfung begegnen –
-              ohne Taschenrechner und mit direkter Auswertung.
+              Trainiere genau die kurzen Aufgabentypen, die dir in der Prüfung begegnen.
+              Jede Runde mischt 12 Aufgaben neu aus einem Pool von {QUESTION_BANK.length} Aufgaben.
             </p>
             <button className="primary-button" onClick={startExam} type="button">
               Übung starten <span aria-hidden="true">→</span>
@@ -187,6 +207,7 @@ export default function Home() {
             <dl className="preview-facts">
               <div><dt>Zeit</dt><dd>15:00 min</dd></div>
               <div><dt>Hilfsmittel</dt><dd>keine</dd></div>
+              <div><dt>Aufgabenpool</dt><dd>{QUESTION_BANK.length}</dd></div>
               <div><dt>Bestwert</dt><dd>{bestScore || '–'} / 12</dd></div>
             </dl>
           </aside>
