@@ -19,13 +19,14 @@ html { scroll-behavior: smooth; }
 
 body {
   margin: 0;
+  overflow-x: clip;
   background: var(--paper);
   color: var(--ink);
   font-family: "Avenir Next", Avenir, "Trebuchet MS", Arial, sans-serif;
 }
 
 button, input { font: inherit; }
-button, a { -webkit-tap-highlight-color: transparent; }
+button, a { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
 button:focus-visible, a:focus-visible, input:focus-visible {
   outline: 3px solid rgba(255, 107, 61, 0.35);
   outline-offset: 3px;
@@ -33,6 +34,7 @@ button:focus-visible, a:focus-visible, input:focus-visible {
 
 .landing-shell {
   min-height: 100vh;
+  min-height: 100dvh;
   overflow: hidden;
   background:
     radial-gradient(circle at 83% 18%, rgba(255, 107, 61, 0.14) 0 7rem, transparent 7.1rem),
@@ -98,6 +100,9 @@ button:focus-visible, a:focus-visible, input:focus-visible {
   padding: 70px 0 88px;
 }
 
+.hero-copy, .hero-side { min-width: 0; }
+.hero-side { display: grid; gap: 20px; }
+
 .eyebrow {
   margin: 0 0 16px;
   color: var(--orange-dark);
@@ -142,9 +147,12 @@ button:focus-visible, a:focus-visible, input:focus-visible {
   transition: transform 150ms ease, background 150ms ease;
 }
 
-.primary-button:hover { background: var(--orange-dark); transform: translateY(-2px); }
 .primary-button span { font-size: 1.35rem; }
 .privacy-note { margin: 15px 0 0; color: var(--muted); font-size: 0.78rem; }
+
+@media (hover: hover) {
+  .primary-button:hover { background: var(--orange-dark); transform: translateY(-2px); }
+}
 
 .exam-preview {
   position: relative;
@@ -179,6 +187,27 @@ button:focus-visible, a:focus-visible, input:focus-visible {
 .preview-facts dt { color: var(--muted); }
 .preview-facts dd { margin: 0; font-weight: 750; }
 
+.qr-card {
+  width: calc(100% - 28px);
+  margin-left: 14px;
+  display: grid;
+  grid-template-columns: 88px minmax(0, 1fr);
+  align-items: center;
+  gap: 18px;
+  border: 1px solid rgba(23, 44, 72, 0.13);
+  border-radius: 18px 5px 18px 18px;
+  padding: 13px 18px 13px 13px;
+  background: rgba(255, 255, 255, 0.82);
+  box-shadow: 0 10px 28px rgba(23, 44, 72, 0.08);
+  color: var(--ink);
+  text-decoration: none;
+}
+.qr-card img { width: 88px; height: 88px; border-radius: 7px; }
+.qr-card > span { min-width: 0; display: grid; gap: 4px; }
+.qr-card small { color: var(--orange-dark); font-size: 0.68rem; font-weight: 800; letter-spacing: 0.11em; text-transform: uppercase; }
+.qr-card strong { font-family: Georgia, serif; font-size: 1.18rem; font-weight: 500; }
+.qr-card > span > span { overflow-wrap: anywhere; color: var(--muted); font-size: 0.68rem; line-height: 1.35; }
+
 .topic-strip {
   width: min(1180px, calc(100% - 48px));
   margin: -46px auto 0;
@@ -210,6 +239,7 @@ button:focus-visible, a:focus-visible, input:focus-visible {
 .timer-warning { background: var(--red); }
 .progress-copy { justify-self: end; display: flex; align-items: baseline; gap: 5px; color: var(--muted); font-size: 0.8rem; }
 .progress-copy strong { color: var(--ink); font-size: 1.05rem; }
+.progress-copy b { display: none; color: var(--muted); font-size: 0.72rem; }
 
 .exam-layout {
   width: min(1240px, calc(100% - 48px));
@@ -248,7 +278,7 @@ button:focus-visible, a:focus-visible, input:focus-visible {
 .question-card label { display: block; max-width: 760px; font-family: Georgia, serif; font-size: clamp(1.4rem, 3vw, 2rem); line-height: 1.4; }
 .question-note { margin: 10px 0 0; color: var(--muted); font-size: 0.8rem; }
 .answer-row { position: relative; width: min(100%, 450px); margin-top: 24px; }
-.answer-row input { width: 100%; height: 54px; border: 1px solid #cbc3b5; border-radius: 4px 14px 14px 14px; padding: 0 52px 0 17px; background: var(--paper); color: var(--ink); box-shadow: 0 5px 16px rgba(23, 44, 72, 0.05); }
+.answer-row input { width: 100%; height: 54px; border: 1px solid #cbc3b5; border-radius: 4px 14px 14px 14px; padding: 0 52px 0 17px; background: var(--paper); color: var(--ink); box-shadow: 0 5px 16px rgba(23, 44, 72, 0.05); font-size: 1rem; }
 .answer-row input::placeholder { color: #9a978e; }
 .answer-row input:focus { border-color: var(--orange); box-shadow: 0 0 0 4px rgba(255, 107, 61, 0.1); outline: 0; }
 .saved-mark { position: absolute; right: 16px; top: 50%; transform: translateY(-50%); width: 25px; height: 25px; display: grid; place-items: center; border-radius: 50%; background: var(--mint); color: var(--green); font-size: 0.75rem; font-weight: 900; }
@@ -268,6 +298,17 @@ button:focus-visible, a:focus-visible, input:focus-visible {
 .result-ring strong { display: block; font-family: Georgia, serif; font-size: 4.5rem; font-weight: 500; line-height: 0.9; }
 .result-ring span { margin-top: 7px; color: var(--muted); font-size: 0.8rem; }
 
+.topic-results { width: min(980px, calc(100% - 48px)); margin: 0 auto; padding: 15px 0 70px; }
+.topic-results-note { max-width: 240px; margin: 0; color: var(--muted); font-size: 0.78rem; line-height: 1.5; text-align: right; }
+.skill-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.skill-card { min-width: 0; border: 1px solid var(--line); border-radius: 4px 17px 17px 17px; padding: 18px; background: #fff; }
+.skill-card > div:first-child { display: flex; justify-content: space-between; align-items: baseline; gap: 14px; }
+.skill-card strong { min-width: 0; overflow-wrap: anywhere; font-family: Georgia, serif; font-size: 1rem; font-weight: 500; }
+.skill-card > div:first-child span { flex: 0 0 auto; color: var(--muted); font-size: 0.69rem; }
+.skill-track { height: 5px; margin: 15px 0 10px; overflow: hidden; border-radius: 99px; background: #e8e2d8; }
+.skill-track span { display: block; height: 100%; border-radius: inherit; background: var(--orange); }
+.skill-card p { margin: 0; color: var(--muted); font-size: 0.72rem; }
+
 .solution-section { width: min(980px, calc(100% - 48px)); margin: 0 auto; padding: 15px 0 100px; }
 .section-heading { display: flex; align-items: end; justify-content: space-between; gap: 30px; margin-bottom: 25px; }
 .section-heading .eyebrow { margin-bottom: 8px; }
@@ -284,25 +325,30 @@ button:focus-visible, a:focus-visible, input:focus-visible {
 .correct .status-mark { background: var(--mint); color: var(--green); }
 .incorrect .status-mark { background: #f8e3dc; color: var(--red); }
 
+.question-card label, .solution-copy > p, .exam-title h1, .result-hero h1 { overflow-wrap: anywhere; }
+
 @media (max-width: 850px) {
   .landing-shell { background: linear-gradient(155deg, var(--paper) 0 72%, #f1eadc 72%); }
   .hero { grid-template-columns: 1fr; gap: 50px; padding: 54px 0 100px; }
-  .exam-preview { max-width: 520px; transform: rotate(0.5deg); }
+  .hero-side { max-width: 520px; }
+  .exam-preview { transform: rotate(0.5deg); }
   .topic-strip { display: none; }
   .exam-layout { grid-template-columns: 1fr; padding-top: 40px; }
   .exam-sidebar { display: none; }
   .progress-copy span { display: none; }
+  .progress-copy b { display: inline; }
   .result-hero { grid-template-columns: 1fr; }
+  .skill-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
 @media (max-width: 580px) {
-  .topbar, .topbar.compact, .hero, .topic-strip, .exam-layout, .result-hero, .solution-section { width: min(100% - 30px, 1180px); }
+  .topbar, .topbar.compact, .hero, .topic-strip, .exam-layout, .result-hero, .topic-results, .solution-section { width: min(100% - 30px, 1180px); }
   .topbar { height: 72px; }
   .hero { min-height: auto; padding-top: 44px; }
   .hero h1 { font-size: clamp(3rem, 15vw, 4.7rem); }
   .hero-lead { font-size: 1rem; }
   .exam-preview { padding: 28px 24px; }
-  .exam-header { height: 70px; padding: 0 15px; grid-template-columns: 1fr auto auto; gap: 13px; }
+  .exam-header { height: 70px; padding-right: max(15px, env(safe-area-inset-right)); padding-left: max(15px, env(safe-area-inset-left)); grid-template-columns: 1fr auto auto; gap: 13px; }
   .exam-header .brand > span:last-child { display: none; }
   .progress-copy { font-size: 0.72rem; }
   .timer { padding: 7px 10px; }
@@ -310,10 +356,14 @@ button:focus-visible, a:focus-visible, input:focus-visible {
   .question-card { padding: 26px 0 30px; }
   .submit-panel { align-items: stretch; flex-direction: column; padding: 24px; }
   .section-heading { align-items: start; flex-direction: column; }
+  .topic-results-note { max-width: none; text-align: left; }
+  .skill-grid { grid-template-columns: 1fr; }
   .result-hero { padding: 50px 0 65px; }
   .result-ring { width: 190px; }
   .solution-card { grid-template-columns: 38px 1fr auto; gap: 10px; }
   .solution-copy dl { flex-direction: column; gap: 7px; }
+  .qr-card { width: 100%; margin-left: 0; grid-template-columns: 82px minmax(0, 1fr); padding: 12px; }
+  .qr-card img { width: 82px; height: 82px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
