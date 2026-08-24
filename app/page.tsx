@@ -1,12 +1,21 @@
 'use client';
 
-import { FormEvent, useEffect, useMemo, useState } from 'react';
+import { FormEvent, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  joinGroup,
+  statsConfigured,
+  submitAttempt,
+} from '../lib/stats-api';
+import type { GroupSession, PendingAttempt } from '../lib/stats-api';
 
 const SESSION_SECONDS = 15 * 60;
 const EXAM_LENGTH = 12;
 const SHARE_URL = 'https://frtitze.github.io/kopfrechen-trainer/';
+const GROUP_SESSION_KEY = 'matheklar-group-session';
+const PENDING_ATTEMPT_KEY = 'matheklar-pending-attempt';
 
 type Phase = 'intro' | 'exam' | 'result';
+type StatisticStatus = 'idle' | 'sending' | 'sent' | 'queued' | 'error';
 
 type Question = {
   id: string;
@@ -188,6 +197,13 @@ export default function Home() {
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [timeLeft, setTimeLeft] = useState(SESSION_SECONDS);
   const [bestScore, setBestScore] = useState(0);
+  const [groupCode, setGroupCode] = useState('');
+  const [groupSession, setGroupSession] = useState<GroupSession | null>(null);
+  const [groupMessage, setGroupMessage] = useState('');
+  const [joiningGroup, setJoiningGroup] = useState(false);
+  const [statisticStatus, setStatisticStatus] = useState<StatisticStatus>('idle');
+  const attemptIdRef = useRef('');
+  const submittedAttemptRef = useRef('');
 
   useEffect(() => {
     const saved = window.localStorage.getItem('matheklar-best-score');
@@ -196,6 +212,35 @@ export default function Home() {
     const frame = window.requestAnimationFrame(() => {
       setBestScore(Math.min(EXAM_LENGTH, Math.max(0, parsed)));
     });
+    return () => window.cancelAnimationFrame(frame);
+  }, []);
+
+  useEffect(() => {
+    if (!statsConfigured) return;
+    let frame = 0;
+    const saved = window.localStorage.getItem(GROUP_SESSION_KEY);
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved) as GroupSession;
+        if (parsed.code && parsed.name && parsed.token) {
+          frame = window.requestAnimationFrame(() => setGroupSession(parsed));
+        }
+      } catch {
+        window.localStorage.removeItem(GROUP_SESSION_KEY);
+      }
+    }
+
+    const pending = window.localStorage.getItem(PENDING_ATTEMPT_KEY);
+    if (pending) {
+      try {
+        const parsed = JSON.parse(pending) as PendingAttempt;
+        submitAttempt(parsed)
+          .then(() => window.localStorage.removeItem(PENDING_ATTEMPT_KEY))
+          .catch(() => undefined);
+      } catch {
+        window.localStorage.removeItem(PENDING_ATTEMPT_KEY);
+      }
+    }
     return () => window.cancelAnimationFrame(frame);
   }, []);
 
@@ -238,14 +283,73 @@ export default function Home() {
     return () => window.cancelAnimationFrame(frame);
   }, [bestScore, phase, score]);
 
+  useEffect(() => {
+    if (phase !== 'result' || !groupSession || !attemptIdRef.current) return;
+    if (submittedAttemptRef.current === attemptIdRef.current) return;
+
+    const attempt: PendingAttempt = {
+      attemptId: attemptIdRef.current,
+      durationSeconds: Math.min(SESSION_SECONDS, Math.max(0, SESSION_SECONDS - timeLeft)),
+      token: groupSession.token,
+      results: questions.map((question) => ({
+        questionId: question.id,
+        category: question.category,
+        correct: question.check(answers[question.id] ?? ''),
+      })),
+    };
+    submittedAttemptRef.current = attempt.attemptId;
+    setStatisticStatus('sending');
+    submitAttempt(attempt)
+      .then(() => {
+        window.localStorage.removeItem(PENDING_ATTEMPT_KEY);
+        setStatisticStatus('sent');
+      })
+      .catch((error) => {
+        const message = error instanceof Error ? error.message : '';
+        if (message.includes('geschlossen') || message.includes('abgelaufen')) {
+          setStatisticStatus('error');
+          return;
+        }
+        window.localStorage.setItem(PENDING_ATTEMPT_KEY, JSON.stringify(attempt));
+        setStatisticStatus('queued');
+      });
+  }, [answers, groupSession, phase, questions, timeLeft]);
+
   const answeredCount = Object.values(answers).filter((answer) => answer.trim()).length;
 
   const startExam = () => {
     setQuestions(createExam());
     setAnswers({});
     setTimeLeft(SESSION_SECONDS);
+    attemptIdRef.current = crypto.randomUUID();
+    submittedAttemptRef.current = '';
+    setStatisticStatus('idle');
     setPhase('exam');
     window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleJoinGroup = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setJoiningGroup(true);
+    setGroupMessage('');
+    try {
+      const result = await joinGroup(groupCode);
+      const session = { ...result.group, token: result.token };
+      window.localStorage.setItem(GROUP_SESSION_KEY, JSON.stringify(session));
+      setGroupSession(session);
+      setGroupCode('');
+      setGroupMessage(`Du bist der Gruppe „${session.name}“ beigetreten.`);
+    } catch (error) {
+      setGroupMessage(error instanceof Error ? error.message : 'Die Gruppe konnte nicht geöffnet werden.');
+    } finally {
+      setJoiningGroup(false);
+    }
+  };
+
+  const leaveGroup = () => {
+    window.localStorage.removeItem(GROUP_SESSION_KEY);
+    setGroupSession(null);
+    setGroupMessage('');
   };
 
   const submitExam = (event: FormEvent<HTMLFormElement>) => {
@@ -280,7 +384,40 @@ export default function Home() {
             <button className="primary-button" onClick={startExam} type="button">
               Übung starten <span aria-hidden="true">→</span>
             </button>
-            <p className="privacy-note">Keine Anmeldung. Deine Ergebnisse bleiben auf diesem Gerät.</p>
+            {statsConfigured && (
+              <div className="group-entry-card">
+                {groupSession ? (
+                  <div className="joined-group">
+                    <span><small>Aktive Gruppe</small><strong>{groupSession.name}</strong></span>
+                    <b>{groupSession.code}</b>
+                    <button onClick={leaveGroup} type="button">Verlassen</button>
+                  </div>
+                ) : (
+                  <form onSubmit={handleJoinGroup}>
+                    <label htmlFor="group-code">Gruppencode <span>optional</span></label>
+                    <div>
+                      <input
+                        autoComplete="off"
+                        id="group-code"
+                        inputMode="text"
+                        maxLength={6}
+                        onChange={(event) => setGroupCode(event.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ''))}
+                        placeholder="ABC234"
+                        value={groupCode}
+                      />
+                      <button disabled={joiningGroup || groupCode.length !== 6} type="submit">
+                        {joiningGroup ? 'Prüfe …' : 'Beitreten'}
+                      </button>
+                    </div>
+                  </form>
+                )}
+                {groupMessage && <p className="form-message" role="status">{groupMessage}</p>}
+              </div>
+            )}
+            <p className="privacy-note">
+              Ohne Namen und Schülerkonto. In einer Gruppe werden nur Bearbeitungszeit sowie richtig/falsch je Thema übermittelt.
+            </p>
+            {statsConfigured && <a className="teacher-link" href="lehrer/">Lehrerbereich öffnen</a>}
           </div>
 
           <div className="hero-side">
@@ -345,6 +482,14 @@ export default function Home() {
                   ? 'Schau dir die markierten Lösungen an und starte danach eine neue Mischung.'
                   : 'Nutze die Lösungen als Lernspur. Die nächste Runde stellt neue Aufgaben zusammen.'}
             </p>
+            {groupSession && statisticStatus !== 'idle' && (
+              <p className={`statistic-status statistic-${statisticStatus}`} role="status">
+                {statisticStatus === 'sending' && `Das Ergebnis wird anonym an „${groupSession.name}“ übermittelt …`}
+                {statisticStatus === 'sent' && `✓ Das Ergebnis wurde anonym an „${groupSession.name}“ übermittelt.`}
+                {statisticStatus === 'queued' && 'Keine Verbindung – das Ergebnis wird beim nächsten Besuch automatisch nachgereicht.'}
+                {statisticStatus === 'error' && 'Die Gruppe ist nicht mehr geöffnet; das Ergebnis wurde nicht übertragen.'}
+              </p>
+            )}
             <button className="primary-button" onClick={startExam} type="button">Neue Runde <span aria-hidden="true">→</span></button>
           </div>
         </section>
@@ -352,7 +497,7 @@ export default function Home() {
         <section className="topic-results" aria-labelledby="topic-results-title">
           <div className="section-heading">
             <div><p className="eyebrow">Deine Themen</p><h2 id="topic-results-title">Stärken & Übungsfelder</h2></div>
-            <p className="topic-results-note">Diese Auswertung bleibt auf deinem Gerät.</p>
+            <p className="topic-results-note">Deine Antworten bleiben auf deinem Gerät und werden nicht gespeichert.</p>
           </div>
           <div className="skill-grid">
             {categoryResults.map(({ category, correct, total }) => {

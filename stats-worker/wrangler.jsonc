@@ -1,0 +1,19 @@
+{
+  "$schema": "../node_modules/wrangler/config-schema.json",
+  "name": "matheklar-statistik",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-05-22",
+  "workers_dev": true,
+  "preview_urls": false,
+  "vars": {
+    "ALLOWED_ORIGINS": "https://frtitze.github.io,https://matheklar-kopfrechen.monique-titze.chatgpt.site,http://localhost:3000,http://localhost:5173"
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "matheklar-statistik",
+      "database_id": "f4dceca0-2b17-40fe-8d2b-1739cbd729e3",
+      "migrations_dir": "migrations"
+    }
+  ]
+}
