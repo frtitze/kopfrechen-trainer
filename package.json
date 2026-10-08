@@ -10,7 +10,8 @@
     "build": "vinext build",
     "build:github-pages": "next build",
     "start": "vinext start",
-    "lint": "eslint . --ignore-pattern dist --ignore-pattern .next"
+    "lint": "eslint . --ignore-pattern dist --ignore-pattern .next",
+    "test": "node --experimental-strip-types --test tests/answer-checks.test.mjs"
   },
   "dependencies": {
     "next": "16.2.6",

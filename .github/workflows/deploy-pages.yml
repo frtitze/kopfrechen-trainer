@@ -50,6 +50,9 @@ jobs:
       - name: Abhängigkeiten installieren
         run: pnpm install --frozen-lockfile
 
+      - name: Antwortprüfung testen
+        run: pnpm run test
+
       - name: Statische Webseite bauen
         run: pnpm run build:github-pages
         env:

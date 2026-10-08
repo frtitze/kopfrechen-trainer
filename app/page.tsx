@@ -1,6 +1,7 @@
 'use client';
 
 import { FormEvent, useEffect, useMemo, useRef, useState } from 'react';
+import { numberSequence, numeric, oneOf, probability, twoNumbers } from '../lib/answer-checks';
 import {
   joinGroup,
   statsConfigured,
@@ -26,59 +27,6 @@ type Question = {
   check: (answer: string) => boolean;
 };
 
-const clean = (value: string) =>
-  value
-    .toLowerCase()
-    .trim()
-    .replaceAll(',', '.')
-    .replaceAll('²', '^2')
-    .replaceAll('³', '^3')
-    .replaceAll('−', '-')
-    .replaceAll('÷', '/')
-    .replace(/\s+/g, '');
-
-const numeric = (expected: number) => (answer: string) => {
-  const prepared = clean(answer)
-    .replace(/^(x(_?0|₀)?=|f\([^)]*\)=)/, '')
-    .replace(/(km|cm|mm|dm|m|h|min|s|kg|mg|g|t|l|ml|cl|dm\^3|cm\^3|m\^3|cm\^2|dm\^2|m\^2|€|eur|euro|%|°)$/g, '');
-  if (!/^-?(?:\d+(?:\.\d+)?|\.\d+)$/.test(prepared)) return false;
-  return Math.abs(Number(prepared) - expected) < 0.0001;
-};
-
-const oneOf = (...accepted: string[]) => (answer: string) =>
-  accepted.map(clean).includes(clean(answer));
-
-const twoNumbers = (first: number, second: number) => (answer: string) => {
-  const values = clean(answer)
-    .replaceAll('°', '')
-    .split(/[;|/]+/)
-    .map(Number)
-    .filter((value) => Number.isFinite(value));
-  return (
-    values.length === 2 &&
-    ((values[0] === first && values[1] === second) ||
-      (values[0] === second && values[1] === first))
-  );
-};
-
-const probability = (expected: number) => (answer: string) => {
-  const prepared = clean(answer);
-  if (!prepared) return false;
-  let value: number;
-
-  if (prepared.endsWith('%')) {
-    value = Number(prepared.slice(0, -1)) / 100;
-  } else if (/^-?(?:\d+(?:\.\d+)?|\.\d+)\/-?(?:\d+(?:\.\d+)?|\.\d+)$/.test(prepared)) {
-    const [numerator, denominator] = prepared.split('/').map(Number);
-    if (denominator === 0) return false;
-    value = numerator / denominator;
-  } else {
-    value = Number(prepared);
-  }
-
-  return Number.isFinite(value) && Math.abs(value - expected) < 0.005;
-};
-
 const QUESTION_BANK: Question[] = [
   { id: 'calc-decimal', category: 'Grundrechnen', prompt: '2,5 : 10 =', solution: '0,25', check: numeric(0.25) },
   { id: 'calc-distributive', category: 'Grundrechnen', prompt: '0,6 · 14 + 0,4 · 14 =', solution: '14', check: numeric(14) },
@@ -92,27 +40,27 @@ const QUESTION_BANK: Question[] = [
   { id: 'calc-power', category: 'Grundrechnen', prompt: '3³ − 5 =', solution: '22', check: numeric(22) },
   { id: 'calc-root', category: 'Grundrechnen', prompt: '√196 =', solution: '14', check: numeric(14) },
   { id: 'calc-fraction-part-second', category: 'Grundrechnen', prompt: 'Wie viel sind ⅔ von 96?', solution: '64', check: numeric(64) },
-  { id: 'unit-length', category: 'Einheiten', prompt: '0,45 m = ___ cm', note: 'Gib nur die Zahl ein.', solution: '45 cm', check: numeric(45) },
-  { id: 'unit-time', category: 'Einheiten', prompt: '0,75 h = ___ min', note: 'Gib nur die Zahl ein.', solution: '45 min', check: numeric(45) },
-  { id: 'unit-length-large', category: 'Einheiten', prompt: '320 cm = ___ m', note: 'Gib nur die Zahl ein.', solution: '3,2 m', check: numeric(3.2) },
-  { id: 'unit-mass', category: 'Einheiten', prompt: '2,4 kg = ___ g', note: 'Gib nur die Zahl ein.', solution: '2 400 g', check: numeric(2400) },
-  { id: 'unit-volume', category: 'Einheiten', prompt: '1,5 l = ___ ml', note: 'Gib nur die Zahl ein.', solution: '1 500 ml', check: numeric(1500) },
-  { id: 'unit-time-second', category: 'Einheiten', prompt: '0,4 h = ___ min', note: 'Gib nur die Zahl ein.', solution: '24 min', check: numeric(24) },
-  { id: 'unit-mixed-length', category: 'Einheiten', prompt: '3 m + 8 cm = ___ m', note: 'Gib nur die Zahl ein.', solution: '3,08 m', check: numeric(3.08) },
-  { id: 'unit-cubic-volume', category: 'Einheiten', prompt: '450 cm³ = ___ dm³', note: 'Gib nur die Zahl ein.', solution: '0,45 dm³', check: numeric(0.45) },
-  { id: 'unit-tonne', category: 'Einheiten', prompt: '0,36 t = ___ kg', note: 'Gib nur die Zahl ein.', solution: '360 kg', check: numeric(360) },
-  { id: 'unit-area', category: 'Einheiten', prompt: '2,5 m² = ___ cm²', note: 'Gib nur die Zahl ein.', solution: '25 000 cm²', check: numeric(25000) },
-  { id: 'percent-increase', category: 'Prozentrechnung', prompt: 'Ein Gehalt von 2 800 € wird um 5 % erhöht. Neues Gehalt:', note: 'Gib den Betrag in Euro ein.', solution: '2 940 €', check: numeric(2940) },
-  { id: 'percent-original', category: 'Prozentrechnung', prompt: '72 € sind 80 % des ursprünglichen Preises. Der ursprüngliche Preis beträgt:', solution: '90 €', check: numeric(90) },
-  { id: 'percent-change', category: 'Prozentrechnung', prompt: 'Ein Betrag steigt von 3 000 € auf 3 090 €. Er steigt um:', note: 'Gib die Prozentzahl ein.', solution: '3 %', check: numeric(3) },
+  { id: 'unit-length', category: 'Einheiten', prompt: '0,45 m = ___ cm', note: 'Die Zahl genügt; die passende Einheit ist auch möglich.', solution: '45 cm', check: numeric(45, 'cm') },
+  { id: 'unit-time', category: 'Einheiten', prompt: '0,75 h = ___ min', note: 'Die Zahl genügt; die passende Einheit ist auch möglich.', solution: '45 min', check: numeric(45, 'min') },
+  { id: 'unit-length-large', category: 'Einheiten', prompt: '320 cm = ___ m', note: 'Die Zahl genügt; die passende Einheit ist auch möglich.', solution: '3,2 m', check: numeric(3.2, 'm') },
+  { id: 'unit-mass', category: 'Einheiten', prompt: '2,4 kg = ___ g', note: 'Die Zahl genügt; die passende Einheit ist auch möglich.', solution: '2 400 g', check: numeric(2400, 'g') },
+  { id: 'unit-volume', category: 'Einheiten', prompt: '1,5 l = ___ ml', note: 'Die Zahl genügt; die passende Einheit ist auch möglich.', solution: '1 500 ml', check: numeric(1500, 'ml') },
+  { id: 'unit-time-second', category: 'Einheiten', prompt: '0,4 h = ___ min', note: 'Die Zahl genügt; die passende Einheit ist auch möglich.', solution: '24 min', check: numeric(24, 'min') },
+  { id: 'unit-mixed-length', category: 'Einheiten', prompt: '3 m + 8 cm = ___ m', note: 'Die Zahl genügt; die passende Einheit ist auch möglich.', solution: '3,08 m', check: numeric(3.08, 'm') },
+  { id: 'unit-cubic-volume', category: 'Einheiten', prompt: '450 cm³ = ___ dm³', note: 'Die Zahl genügt; die passende Einheit ist auch möglich.', solution: '0,45 dm³', check: numeric(0.45, 'dm³') },
+  { id: 'unit-tonne', category: 'Einheiten', prompt: '0,36 t = ___ kg', note: 'Die Zahl genügt; die passende Einheit ist auch möglich.', solution: '360 kg', check: numeric(360, 'kg') },
+  { id: 'unit-area', category: 'Einheiten', prompt: '2,5 m² = ___ cm²', note: 'Die Zahl genügt; die passende Einheit ist auch möglich.', solution: '25 000 cm²', check: numeric(25000, 'cm²') },
+  { id: 'percent-increase', category: 'Prozentrechnung', prompt: 'Ein Gehalt von 2 800 € wird um 5 % erhöht. Neues Gehalt:', note: 'Gib den Betrag in Euro ein.', solution: '2 940 €', check: numeric(2940, '€') },
+  { id: 'percent-original', category: 'Prozentrechnung', prompt: '72 € sind 80 % des ursprünglichen Preises. Der ursprüngliche Preis beträgt:', solution: '90 €', check: numeric(90, '€') },
+  { id: 'percent-change', category: 'Prozentrechnung', prompt: 'Ein Betrag steigt von 3 000 € auf 3 090 €. Er steigt um:', note: 'Gib die Prozentzahl ein.', solution: '3 %', check: numeric(3, '%') },
   { id: 'percent-part', category: 'Prozentrechnung', prompt: '15 % von 200 sind:', solution: '30', check: numeric(30) },
   { id: 'percent-base', category: 'Prozentrechnung', prompt: '48 sind 60 % von welcher Zahl?', solution: '80', check: numeric(80) },
-  { id: 'percent-reduction', category: 'Prozentrechnung', prompt: 'Ein Preis von 500 € wird um 12 % gesenkt. Neuer Preis:', solution: '440 €', check: numeric(440) },
-  { id: 'percent-everyday-increase', category: 'Prozentrechnung', prompt: 'Ein Pausensnack kostet 2,40 €. Der Preis steigt um 25 %. Wie viel kostet er danach?', solution: '3,00 €', check: numeric(3) },
-  { id: 'percent-everyday-discount', category: 'Prozentrechnung', prompt: 'Eine Jacke für 80 € wird um 15 % reduziert. Neuer Preis:', solution: '68 €', check: numeric(68) },
-  { id: 'percent-fraction', category: 'Prozentrechnung', prompt: 'Gib den Bruch 7/20 als Prozentzahl an.', solution: '35 %', check: numeric(35) },
+  { id: 'percent-reduction', category: 'Prozentrechnung', prompt: 'Ein Preis von 500 € wird um 12 % gesenkt. Neuer Preis:', solution: '440 €', check: numeric(440, '€') },
+  { id: 'percent-everyday-increase', category: 'Prozentrechnung', prompt: 'Ein Pausensnack kostet 2,40 €. Der Preis steigt um 25 %. Wie viel kostet er danach?', solution: '3,00 €', check: numeric(3, '€') },
+  { id: 'percent-everyday-discount', category: 'Prozentrechnung', prompt: 'Eine Jacke für 80 € wird um 15 % reduziert. Neuer Preis:', solution: '68 €', check: numeric(68, '€') },
+  { id: 'percent-fraction', category: 'Prozentrechnung', prompt: 'Gib den Bruch 7/20 als Prozentzahl an.', solution: '35 %', check: numeric(35, '%') },
   { id: 'percent-base-second', category: 'Prozentrechnung', prompt: '54 sind 90 % einer Zahl. Wie groß ist die Zahl?', solution: '60', check: numeric(60) },
-  { id: 'percent-change-second', category: 'Prozentrechnung', prompt: 'Eine Teilnehmerzahl steigt von 250 auf 300. Um wie viel Prozent steigt sie?', solution: '20 %', check: numeric(20) },
+  { id: 'percent-change-second', category: 'Prozentrechnung', prompt: 'Eine Teilnehmerzahl steigt von 250 auf 300. Um wie viel Prozent steigt sie?', solution: '20 %', check: numeric(20, '%') },
   { id: 'term-value', category: 'Terme', prompt: 'Berechne 2a(a − b) für a = 3 und b = 6.', solution: '−18', check: numeric(-18) },
   { id: 'binomial', category: 'Terme', prompt: 'Löse die Klammer auf: (x − 4)²', solution: 'x² − 8x + 16', check: oneOf('x^2-8x+16', '16-8x+x^2') },
   { id: 'rearrange', category: 'Terme', prompt: 'Stelle u = 2(a + b) nach a um.', solution: 'a = u/2 − b', check: oneOf('a=u/2-b', 'u/2-b', 'a=0.5u-b', '0.5u-b') },
@@ -123,21 +71,21 @@ const QUESTION_BANK: Question[] = [
   { id: 'expand-brackets', category: 'Terme', prompt: 'Löse die Klammer auf: 3(2x − 5)', solution: '6x − 15', check: oneOf('6x-15', '-15+6x') },
   { id: 'factorise-term', category: 'Terme', prompt: 'Klammere 4 aus: 8x + 12', solution: '4(2x + 3)', check: oneOf('4(2x+3)', '4*(2x+3)') },
   { id: 'linear-equation', category: 'Terme', prompt: 'Löse die Gleichung 5x − 7 = 18.', note: 'Gib den Wert von x ein.', solution: 'x = 5', check: numeric(5) },
-  { id: 'square-area', category: 'Geometrie', prompt: 'Ein Quadrat hat den Flächeninhalt 121 cm². Seine Seitenlänge beträgt:', solution: '11 cm', check: numeric(11) },
-  { id: 'equal-area', category: 'Geometrie', prompt: 'Ein Rechteck ist 4 cm × 9 cm groß. Die Seitenlänge eines flächengleichen Quadrats ist:', solution: '6 cm', check: numeric(6) },
+  { id: 'square-area', category: 'Geometrie', prompt: 'Ein Quadrat hat den Flächeninhalt 121 cm². Seine Seitenlänge beträgt:', solution: '11 cm', check: numeric(11, 'cm') },
+  { id: 'equal-area', category: 'Geometrie', prompt: 'Ein Rechteck ist 4 cm × 9 cm groß. Die Seitenlänge eines flächengleichen Quadrats ist:', solution: '6 cm', check: numeric(6, 'cm') },
   { id: 'triangle-angles', category: 'Geometrie', prompt: 'Ein rechtwinkliges Dreieck hat einen Winkel von 35°. Nenne die beiden anderen Winkel.', note: 'Trenne die Werte mit einem Semikolon.', solution: '55°; 90°', check: twoNumbers(55, 90) },
-  { id: 'circle-radius', category: 'Geometrie', prompt: 'Ein Kreis hat einen Durchmesser von 12 cm. Sein Radius beträgt:', solution: '6 cm', check: numeric(6) },
-  { id: 'rectangle-perimeter', category: 'Geometrie', prompt: 'Ein Rechteck ist 7 cm lang und 4 cm breit. Sein Umfang beträgt:', solution: '22 cm', check: numeric(22) },
-  { id: 'triangle-third-angle', category: 'Geometrie', prompt: 'Zwei Winkel eines Dreiecks sind 46° und 64° groß. Der dritte Winkel beträgt:', solution: '70°', check: numeric(70) },
-  { id: 'triangle-area', category: 'Geometrie', prompt: 'Ein Dreieck hat die Grundseite 12 cm und die zugehörige Höhe 5 cm. Sein Flächeninhalt beträgt:', solution: '30 cm²', check: numeric(30) },
+  { id: 'circle-radius', category: 'Geometrie', prompt: 'Ein Kreis hat einen Durchmesser von 12 cm. Sein Radius beträgt:', solution: '6 cm', check: numeric(6, 'cm') },
+  { id: 'rectangle-perimeter', category: 'Geometrie', prompt: 'Ein Rechteck ist 7 cm lang und 4 cm breit. Sein Umfang beträgt:', solution: '22 cm', check: numeric(22, 'cm') },
+  { id: 'triangle-third-angle', category: 'Geometrie', prompt: 'Zwei Winkel eines Dreiecks sind 46° und 64° groß. Der dritte Winkel beträgt:', solution: '70°', check: numeric(70, '°') },
+  { id: 'triangle-area', category: 'Geometrie', prompt: 'Ein Dreieck hat die Grundseite 12 cm und die zugehörige Höhe 5 cm. Sein Flächeninhalt beträgt:', solution: '30 cm²', check: numeric(30, 'cm²') },
   { id: 'triangle-largest-angle', category: 'Geometrie', prompt: 'In einem Dreieck gilt a = 5 cm, b = 7 cm und c = 9 cm. Welcher Winkel ist der größte?', note: 'Gib α, β oder γ ein.', solution: 'γ', check: oneOf('γ', 'gamma') },
-  { id: 'cube-volume', category: 'Geometrie', prompt: 'Ein Würfel hat eine Kantenlänge von 4 cm. Sein Volumen beträgt:', solution: '64 cm³', check: numeric(64) },
-  { id: 'pythagoras-triple', category: 'Geometrie', prompt: 'Ein rechtwinkliges Dreieck hat Katheten von 6 cm und 8 cm. Die Hypotenuse ist lang:', solution: '10 cm', check: numeric(10) },
+  { id: 'cube-volume', category: 'Geometrie', prompt: 'Ein Würfel hat eine Kantenlänge von 4 cm. Sein Volumen beträgt:', solution: '64 cm³', check: numeric(64, 'cm³') },
+  { id: 'pythagoras-triple', category: 'Geometrie', prompt: 'Ein rechtwinkliges Dreieck hat Katheten von 6 cm und 8 cm. Die Hypotenuse ist lang:', solution: '10 cm', check: numeric(10, 'cm') },
   { id: 'vertex', category: 'Funktionen', prompt: 'Gib den Scheitelpunkt der Funktion f(x) = (x + 5)² + 1 an.', note: 'Schreibweise zum Beispiel: S(2/3)', solution: 'S(−5/1)', check: oneOf('s(-5/1)', '(-5/1)', '-5/1') },
   { id: 'zero', category: 'Funktionen', prompt: 'Die Gerade hat die Gleichung y = 2x − 6. Ihre Nullstelle ist x₀ =', solution: '3', check: numeric(3) },
   { id: 'vertex-second', category: 'Funktionen', prompt: 'Gib den Scheitelpunkt der Funktion f(x) = (x − 3)² − 2 an.', note: 'Verwende die Schreibweise S(x/y).', solution: 'S(3/−2)', check: oneOf('s(3/-2)', '(3/-2)', '3/-2') },
   { id: 'zero-second', category: 'Funktionen', prompt: 'Die Gerade hat die Gleichung y = −3x + 9. Ihre Nullstelle ist x₀ =', solution: '3', check: numeric(3) },
-  { id: 'function-value', category: 'Funktionen', prompt: 'Für f(x) = 2x + 1 gilt bei x = 4:', solution: 'f(4) = 9', check: oneOf('9', 'f(4)=9') },
+  { id: 'function-value', category: 'Funktionen', prompt: 'Für f(x) = 2x + 1 gilt bei x = 4:', solution: 'f(4) = 9', check: numeric(9) },
   { id: 'function-value-second', category: 'Funktionen', prompt: 'Berechne f(5) für f(x) = 3x − 4.', solution: '11', check: numeric(11) },
   { id: 'function-slope', category: 'Funktionen', prompt: 'Gib den Anstieg der Geraden y = −2x + 7 an.', solution: '−2', check: numeric(-2) },
   { id: 'function-intercept', category: 'Funktionen', prompt: 'Gib den y-Achsenabschnitt der Geraden y = −2x + 7 an.', solution: '7', check: numeric(7) },
@@ -146,20 +94,20 @@ const QUESTION_BANK: Question[] = [
   { id: 'probability', category: 'Stochastik', prompt: 'Von 12 Pullovern sind 8 bunt gemustert. Die Wahrscheinlichkeit, einen gemusterten Pullover zu ziehen, ist:', note: 'Bruch, Dezimalzahl oder Prozentzahl sind möglich.', solution: '2/3', check: probability(2 / 3) },
   { id: 'probability-zero', category: 'Stochastik', prompt: 'In einer Urne liegen nur rote und gelbe Kugeln. Die Wahrscheinlichkeit, eine blaue Kugel zu ziehen, ist:', solution: '0', check: probability(0) },
   { id: 'probability-red', category: 'Stochastik', prompt: 'In einer Urne liegen 9 rote und 11 gelbe Kugeln. Die Wahrscheinlichkeit für Rot ist:', note: 'Bruch, Dezimalzahl oder Prozentzahl sind möglich.', solution: '9/20 = 0,45 = 45 %', check: probability(0.45) },
-  { id: 'probability-complement', category: 'Stochastik', prompt: 'Die Wahrscheinlichkeit für Regen beträgt 30 %. Die Wahrscheinlichkeit, dass es nicht regnet, beträgt:', solution: '70 %', check: numeric(70) },
+  { id: 'probability-complement', category: 'Stochastik', prompt: 'Die Wahrscheinlichkeit für Regen beträgt 30 %. Die Wahrscheinlichkeit, dass es nicht regnet, beträgt:', solution: '70 %', check: numeric(70, '%') },
   { id: 'statistics-mean', category: 'Stochastik', prompt: 'Bestimme das arithmetische Mittel: 8; 11; 9; 12', solution: '10', check: numeric(10) },
   { id: 'statistics-range', category: 'Stochastik', prompt: 'Bestimme die Spannweite: 2,5; 3,1; 4,6; 3,8', solution: '2,1', check: numeric(2.1) },
   { id: 'statistics-median', category: 'Stochastik', prompt: 'Bestimme den Median: 2; 5; 7; 8; 10', solution: '7', check: numeric(7) },
-  { id: 'probability-complement-second', category: 'Stochastik', prompt: 'Die Trefferwahrscheinlichkeit beträgt 18 %. Wie groß ist die Gegenwahrscheinlichkeit?', solution: '82 %', check: numeric(82) },
+  { id: 'probability-complement-second', category: 'Stochastik', prompt: 'Die Trefferwahrscheinlichkeit beträgt 18 %. Wie groß ist die Gegenwahrscheinlichkeit?', solution: '82 %', check: numeric(82, '%') },
   { id: 'probability-green', category: 'Stochastik', prompt: 'In einem Beutel sind 3 grüne und 9 weiße Kugeln. Wie groß ist die Wahrscheinlichkeit für Grün?', note: 'Bruch, Dezimalzahl oder Prozentzahl sind möglich.', solution: '1/4 = 0,25 = 25 %', check: probability(0.25) },
   { id: 'probability-die', category: 'Stochastik', prompt: 'Ein fairer Würfel wird einmal geworfen. Wie groß ist die Wahrscheinlichkeit für eine gerade Zahl?', note: 'Bruch, Dezimalzahl oder Prozentzahl sind möglich.', solution: '1/2 = 0,5 = 50 %', check: probability(0.5) },
   { id: 'probability-expected', category: 'Stochastik', prompt: 'Bei 20 Versuchen liegt die Trefferwahrscheinlichkeit bei 30 %. Wie viele Treffer sind im Mittel zu erwarten?', solution: '6', check: numeric(6) },
-  { id: 'sequence', category: 'Zahlenfolgen', prompt: 'Setze die Zahlenfolge fort: 10; 20; 40; 70; ___; ___', note: 'Trenne die beiden Zahlen mit einem Semikolon.', solution: '110; 160', check: oneOf('110;160', '110|160') },
-  { id: 'sequence-differences', category: 'Zahlenfolgen', prompt: 'Setze die Zahlenfolge fort: 5; 9; 15; 23; ___; ___', note: 'Trenne die beiden Zahlen mit einem Semikolon.', solution: '33; 45', check: oneOf('33;45', '33|45') },
-  { id: 'sequence-squares', category: 'Zahlenfolgen', prompt: 'Setze fort: 4; 9; 16; 25; ___; ___', note: 'Trenne die beiden Zahlen mit einem Semikolon.', solution: '36; 49', check: oneOf('36;49', '36|49') },
-  { id: 'sequence-division', category: 'Zahlenfolgen', prompt: 'Setze fort: 81; 27; 9; 3; ___; ___', note: 'Trenne die beiden Zahlen mit einem Semikolon.', solution: '1; 1/3', check: oneOf('1;1/3', '1|1/3') },
-  { id: 'sequence-products', category: 'Zahlenfolgen', prompt: 'Setze fort: 2; 6; 12; 20; 30; ___; ___', note: 'Trenne die beiden Zahlen mit einem Semikolon.', solution: '42; 56', check: oneOf('42;56', '42|56') },
-  { id: 'sequence-subtraction', category: 'Zahlenfolgen', prompt: 'Setze fort: 100; 95; 85; 70; ___; ___', note: 'Trenne die beiden Zahlen mit einem Semikolon.', solution: '50; 25', check: oneOf('50;25', '50|25') },
+  { id: 'sequence', category: 'Zahlenfolgen', prompt: 'Setze die Zahlenfolge fort: 10; 20; 40; 70; ___; ___', note: 'Trenne die beiden Zahlen mit einem Semikolon.', solution: '110; 160', check: numberSequence(110, 160) },
+  { id: 'sequence-differences', category: 'Zahlenfolgen', prompt: 'Setze die Zahlenfolge fort: 5; 9; 15; 23; ___; ___', note: 'Trenne die beiden Zahlen mit einem Semikolon.', solution: '33; 45', check: numberSequence(33, 45) },
+  { id: 'sequence-squares', category: 'Zahlenfolgen', prompt: 'Setze fort: 4; 9; 16; 25; ___; ___', note: 'Trenne die beiden Zahlen mit einem Semikolon.', solution: '36; 49', check: numberSequence(36, 49) },
+  { id: 'sequence-division', category: 'Zahlenfolgen', prompt: 'Setze fort: 81; 27; 9; 3; ___; ___', note: 'Trenne die beiden Zahlen mit einem Semikolon. Brüche darfst du auf mindestens zwei Nachkommastellen runden.', solution: '1; 1/3 ≈ 0,33', check: numberSequence(1, 1 / 3) },
+  { id: 'sequence-products', category: 'Zahlenfolgen', prompt: 'Setze fort: 2; 6; 12; 20; 30; ___; ___', note: 'Trenne die beiden Zahlen mit einem Semikolon.', solution: '42; 56', check: numberSequence(42, 56) },
+  { id: 'sequence-subtraction', category: 'Zahlenfolgen', prompt: 'Setze fort: 100; 95; 85; 70; ___; ___', note: 'Trenne die beiden Zahlen mit einem Semikolon.', solution: '50; 25', check: numberSequence(50, 25) },
 ];
 
 const shuffle = <T,>(items: T[]) => {
@@ -576,7 +524,7 @@ export default function Home() {
               </li>
             ))}
           </ol>
-          <p className="sidebar-note"><strong>Hinweis</strong> Komma und Punkt werden bei Dezimalzahlen akzeptiert.</p>
+          <p className="sidebar-note"><strong>Hinweis</strong> Komma und Punkt werden bei Dezimalzahlen akzeptiert. Einheiten kannst du zum Beispiel als cm², cm^2, cm2 oder „cm hoch zwei“ schreiben. Für Volumen gilt entsprechend m³, m3 oder „m hoch drei“.</p>
         </aside>
 
         <form className="question-form" onSubmit={submitExam}>
